@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI JD Generator</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 800px;
+            margin: auto;
+            padding: 40px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: black;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>AI Job Description Generator</h2>
+
+<form id="jdForm">
+
+<label>Job Title</label>
+<input type="text" name="title" required>
+
+<label>Skills</label>
+<input type="text" name="skills" required>
+
+<label>Experience</label>
+<input type="text" name="experience" required>
+
+<button type="submit">Generate JD</button>
+
+</form>
+
+<h3>Generated JD</h3>
+
+<textarea id="jdOutput" rows="15"></textarea>
+
+<button onclick="approveJD()">Approve JD</button>
+
+<script>
+
+document.getElementById("jdForm").addEventListener("submit", async function(e) {
+
+    e.preventDefault()
+
+    let formData = new FormData(this)
+
+    let response = await fetch("/generate-jd", {
+        method: "POST",
+        body: formData
+    })
+
+    let data = await response.json()
+
+    document.getElementById("jdOutput").value = data.jd
+
+})
+
+async function approveJD() {
+    let jdText = document.getElementById("jdOutput").value
+    let response = await fetch("/approve-jd",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            jd:jdText
+        })
+    })
+    let data = await response.json()
+    console.log(data)
+    alert(data.message)
+}
+
+</script>
+
+</body>
+</html>
