@@ -42,3 +42,28 @@ def approve_jd(data: ApprovedJD):
     conn.commit()
     conn.close()
     return {"message":"JD saved successfully"}
+
+
+@app.post("revise-jd")
+def revise_jd(
+    title: str = Form(...),
+    skills: str = Form(...),
+    experience: str = Form(...),
+    feedback: str = Form(...)
+):
+    imporoved_prompt = f"""
+    Generate a job description for:
+
+    Title: {title}
+    Skills: {skills}
+    Experience: {experience}
+
+    The previous JD was rejected.
+
+    Recruiter feedback:
+    {feedback}
+
+    Generate an improved JD addressing this feedback.
+    """
+    new_jd = generate_jd(imporoved_prompt)
+    return {"generated_jd":new_jd}

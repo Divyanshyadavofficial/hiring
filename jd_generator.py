@@ -23,3 +23,4 @@ def generate_jd(title,skills,experience):
     """
     response = llm.invoke(prompt)
     return response.content
+
