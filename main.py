@@ -1,8 +1,10 @@
-from fastapi import FastAPI,Form,Request
+import shutil
+from fastapi import FastAPI,Form,Request,UploadFile,File
 from jd_generator import generate_jd
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+import os
 import sqlite3
 from database import create_table
 create_table()
@@ -18,6 +20,10 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+# Routes for JD Component
+
 
 @app.post("/generate-jd")
 def create_jd(
@@ -53,3 +59,18 @@ def revise_jd(
 ):
     new_jd = generate_jd(title,skills,experience,feedback)
     return {"generated_jd":new_jd}
+
+# Routes for Resume upload and Parsing
+
+UPLOAD_FOLDER = "resumes"
+
+@app.post("/upload-resume")
+async def upload_resume(file: UploadFile=File(...)):
+    file_path = os.path.join(UPLOAD_FOLDER,file.filename)
+
+    with open(file_path,"wb") as buffer:
+        shutil.copyfileobj(file.file,buffer)
+    return {
+        "message":"Resume uploaded successfully",
+        "filename":file.filename
+    }
