@@ -8,19 +8,36 @@ llm = ChatGroq(
 
 )
 
-def generate_jd(title,skills,experience):
+def generate_jd(title, skills, experience, feedback=None):
+
     prompt = f"""
     Generate a professional job description.
 
-    Job Title:{title}
-    Skills:{skills}
-    Experience:{experience}
+    Job Title: {title}
+    Skills: {skills}
+    Experience: {experience}
+    """
 
-    Include: 
+    if feedback:
+        prompt += f"""
+
+        The previous JD was rejected.
+
+        Recruiter feedback:
+        {feedback}
+
+        Improve the job description based on this feedback.
+        """
+
+    prompt += """
+
+    Include:
     - Role overview
     - Responsibilities
     - Required skills
     """
+
     response = llm.invoke(prompt)
+
     return response.content
 
