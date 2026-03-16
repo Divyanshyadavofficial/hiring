@@ -31,7 +31,7 @@ def create_jd(
 
 @app.post("/approve-jd")
 def approve_jd(data: ApprovedJD):
-    conn = sqlite3.connect('hiring.db')
+    conn = sqlite3.connect('resumes/hiring.db')
     cursor = conn.cursor()
 
     cursor.execute(
