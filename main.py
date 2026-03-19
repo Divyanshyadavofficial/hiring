@@ -1,43 +1,67 @@
-import shutil
-from fastapi import FastAPI,Form,Request,UploadFile,File
-from jd_generator import generate_jd
-from pydantic import BaseModel
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
 import os
+import shutil
 import sqlite3
+
+from fastapi import FastAPI, Form, Request, UploadFile, File
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+
+from jd_generator import generate_jd
 from database import create_table
+
+# Initialize DB
 create_table()
 
 app = FastAPI()
 
-class ApprovedJD(BaseModel):
-    jd: str
+# Ensure resumes folder exists
+UPLOAD_FOLDER = "resumes"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Templates
 templates = Jinja2Templates(directory="templates")
 
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+# ============================
+# Models
+# ============================
+class ApprovedJD(BaseModel):
+    jd: str
 
 
-# Routes for JD Component
+# ============================
+# Page Routes
+# ============================
+@app.get("/candidate", response_class=HTMLResponse)
+def candidate_page(request: Request):
+    return templates.TemplateResponse("candidate.html", {"request": request})
 
 
+@app.get("/recruiter", response_class=HTMLResponse)
+def recruiter_page(request: Request):
+    return templates.TemplateResponse("recruiter.html", {"request": request})
+
+
+# ============================
+# JD GENERATION
+# ============================
 @app.post("/generate-jd")
 def create_jd(
     title: str = Form(...),
     skills: str = Form(...),
     experience: str = Form(...)
 ):
-    jd = generate_jd(title,skills,experience)
-    return {"jd":jd}
+    jd = generate_jd(title, skills, experience)
+    return {"jd": jd}
 
 
+# ============================
+# APPROVE JD (SAVE TO DB)
+# ============================
 @app.post("/approve-jd")
 def approve_jd(data: ApprovedJD):
-    conn = sqlite3.connect('resumes/hiring.db')
+    conn = sqlite3.connect('hiring.db')   # FIXED PATH
     cursor = conn.cursor()
 
     cursor.execute(
@@ -47,9 +71,13 @@ def approve_jd(data: ApprovedJD):
 
     conn.commit()
     conn.close()
-    return {"message":"JD saved successfully"}
+
+    return {"message": "JD saved successfully"}
 
 
+# ============================
+# REVISE JD (REJECT FLOW)
+# ============================
 @app.post("/revise-jd")
 def revise_jd(
     title: str = Form(...),
@@ -57,20 +85,64 @@ def revise_jd(
     experience: str = Form(...),
     feedback: str = Form(...)
 ):
-    new_jd = generate_jd(title,skills,experience,feedback)
-    return {"generated_jd":new_jd}
+    # FIX: generate_jd expects 3 args → so we merge feedback into prompt
+    improved_prompt = f"""
+    Generate a professional job description.
 
-# Routes for Resume upload and Parsing
+    Job Title: {title}
+    Skills: {skills}
+    Experience: {experience}
 
-UPLOAD_FOLDER = "resumes"
+    Previous JD was rejected.
 
+    Recruiter Feedback:
+    {feedback}
+
+    Improve the JD accordingly with:
+    - Better clarity
+    - Updated responsibilities
+    - Skills aligned with feedback
+    """
+
+    # Directly call LLM via generator
+    new_jd = generate_jd(title, skills, experience + " | Feedback: " + feedback)
+
+    return {"generated_jd": new_jd}
+
+
+# ============================
+# FETCH SAVED JDs
+# ============================
+@app.get("/get-jds")
+def get_jds():
+    conn = sqlite3.connect("hiring.db")
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT jd_text FROM job_descriptions")
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return {"jds": [row[0] for row in rows]}
+
+
+# ============================
+# RESUME UPLOAD
+# ============================
 @app.post("/upload-resume")
-async def upload_resume(file: UploadFile=File(...)):
-    file_path = os.path.join(UPLOAD_FOLDER,file.filename)
+async def upload_resume(file: UploadFile = File(...)):
 
-    with open(file_path,"wb") as buffer:
-        shutil.copyfileobj(file.file,buffer)
+    # Validate file type
+    if not file.filename.endswith(".pdf"):
+        return {"error": "Only PDF files are allowed"}
+
+    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+
+    # Save file
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
     return {
-        "message":"Resume uploaded successfully",
-        "filename":file.filename
+        "message": "Resume uploaded successfully",
+        "filename": file.filename
     }

@@ -4,7 +4,6 @@
 <title>AI JD Generator</title>
 
 <style>
-
 body{
 font-family: Arial;
 max-width: 800px;
@@ -36,8 +35,8 @@ cursor: not-allowed;
 #reject-form{
 border-top:1px solid #ccc;
 padding-top:20px;
+margin-top:20px;
 }
-
 </style>
 
 </head>
@@ -45,6 +44,8 @@ padding-top:20px;
 <body>
 
 <h2>AI Job Description Generator</h2>
+
+<p id="status"></p>
 
 <form id="jdForm">
 
@@ -66,7 +67,9 @@ padding-top:20px;
 <textarea id="jdOutput" rows="15" placeholder="Generated job description will appear here..."></textarea>
 
 <button id="approveBtn" onclick="approveJD()">Approve JD</button>
-<button onclick="showRejectForm()">Reject</button>
+<button id="rejectBtn" onclick="showRejectForm()" disabled>Reject</button>
+<button onclick="copyJD()">Copy JD</button>
+<button onclick="clearJD()">Clear</button>
 
 <div id="reject-form" style="display:none;">
 
@@ -78,12 +81,19 @@ padding-top:20px;
 
 </div>
 
+<h3>Saved Job Descriptions</h3>
+<button onclick="loadJDs()">Load Saved JDs</button>
+
+<ul id="jdList"></ul>
+
 <script>
 
 const jdOutput = document.getElementById("jdOutput")
 const generateBtn = document.getElementById("generateBtn")
 const approveBtn = document.getElementById("approveBtn")
 const submitFeedbackBtn = document.getElementById("submitFeedbackBtn")
+const rejectBtn = document.getElementById("rejectBtn")
+const statusText = document.getElementById("status")
 
 // Generate JD
 document.getElementById("jdForm").addEventListener("submit", async function(e){
@@ -92,7 +102,8 @@ e.preventDefault()
 
 generateBtn.disabled = true
 
-jdOutput.value = "Generating JD...\n\nPlease wait..."
+jdOutput.value = "⏳ Generating JD...\n\nPlease wait..."
+statusText.innerText = ""
 
 let formData = new FormData(this)
 
@@ -106,6 +117,9 @@ body:formData
 let data = await response.json()
 
 jdOutput.value = data.jd
+statusText.innerText = "✅ JD generated successfully"
+
+rejectBtn.disabled = false
 
 }catch(error){
 
@@ -165,7 +179,11 @@ alert("Generate a JD first.")
 return
 }
 
-document.getElementById("reject-form").style.display = "block"
+const form = document.getElementById("reject-form")
+form.style.display = "block"
+
+document.getElementById("feedback").focus()
+form.scrollIntoView({behavior: "smooth"})
 
 }
 
@@ -187,7 +205,7 @@ const experience = document.querySelector('input[name="experience"]').value
 submitFeedbackBtn.disabled = true
 
 jdOutput.value =
-"Regenerating JD using recruiter feedback...\n\nPlease wait..."
+"⏳ Regenerating JD using recruiter feedback...\n\nPlease wait..."
 
 const formData = new FormData()
 
@@ -206,6 +224,7 @@ body:formData
 const data = await response.json()
 
 jdOutput.value = data.generated_jd
+statusText.innerText = "🔁 JD regenerated with improvements"
 
 // clear feedback
 document.getElementById("feedback").value=""
@@ -221,6 +240,62 @@ jdOutput.value = "Error regenerating JD. Please try again."
 
 submitFeedbackBtn.disabled = false
 
+}
+
+
+// Load saved JDs
+async function loadJDs(){
+
+const response = await fetch("/get-jds")
+const data = await response.json()
+
+const jdList = document.getElementById("jdList")
+jdList.innerHTML = ""
+
+if(data.jds.length === 0){
+jdList.innerHTML = "<p>No saved JDs yet.</p>"
+return
+}
+
+data.jds.forEach(jd => {
+
+const li = document.createElement("li")
+
+li.innerHTML = `
+<textarea rows="6" style="width:100%">${jd}</textarea>
+<button onclick="useJD(this)">Use this JD</button>
+<hr/>
+`
+
+jdList.appendChild(li)
+
+})
+
+}
+
+
+// Use saved JD
+function useJD(btn){
+const jd = btn.previousElementSibling.value
+jdOutput.value = jd
+statusText.innerText = "📌 Loaded saved JD"
+}
+
+
+// Copy JD
+function copyJD(){
+navigator.clipboard.writeText(jdOutput.value)
+alert("JD copied to clipboard")
+}
+
+
+// Clear JD
+function clearJD(){
+if(confirm("Are you sure you want to clear JD?")){
+jdOutput.value = ""
+statusText.innerText = ""
+rejectBtn.disabled = true
+}
 }
 
 </script>

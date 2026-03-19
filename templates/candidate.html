@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Resume</title>
+</head>
+<body>
+    <h2>Upload Your Resume</h2>
+
+    <input type="file" id="resumeFile" accept=".pdf" />
+    <button onclick="uploadResume()">Upload</button>
+
+    <p id="status"></p>
+<script>
+    async function uploadResume() {
+        const file = document.getElementById("resumeFile").files[0];
+
+        if (!file){
+            alert("Please select a file");
+            return;
+        }
+        document.getElementById("status").innerText = "Uploading...";
+        const formData = new FormData();
+        formData.append("file",file);
+
+        const response = await fetch("/upload-resume",{
+            method:"POST",
+            body:formData
+        });
+
+        const data = await response.json();
+
+        if (data.error){
+            document.getElementById("status").innerText = data.error;
+        } else {
+            document.getElementById("status").innerText = "Resume uploaded successfully";
+        }
+        
+    }
+</script>
+</body>
+</html>
