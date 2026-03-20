@@ -1,6 +1,7 @@
 import os
 import shutil
 import sqlite3
+import uuid
 
 from fastapi import FastAPI, Form, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
@@ -15,9 +16,7 @@ create_table()
 
 app = FastAPI()
 
-# Ensure resumes folder exists
-UPLOAD_FOLDER = "resumes"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 # Templates
 templates = Jinja2Templates(directory="templates")
@@ -85,25 +84,6 @@ def revise_jd(
     experience: str = Form(...),
     feedback: str = Form(...)
 ):
-    # FIX: generate_jd expects 3 args → so we merge feedback into prompt
-    improved_prompt = f"""
-    Generate a professional job description.
-
-    Job Title: {title}
-    Skills: {skills}
-    Experience: {experience}
-
-    Previous JD was rejected.
-
-    Recruiter Feedback:
-    {feedback}
-
-    Improve the JD accordingly with:
-    - Better clarity
-    - Updated responsibilities
-    - Skills aligned with feedback
-    """
-
     # Directly call LLM via generator
     new_jd = generate_jd(title, skills, experience + " | Feedback: " + feedback)
 
@@ -129,20 +109,29 @@ def get_jds():
 # ============================
 # RESUME UPLOAD
 # ============================
+
+UPLOAD_FOLDER = "resumes"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 @app.post("/upload-resume")
 async def upload_resume(file: UploadFile = File(...)):
+    try:
+        if not file.filename.endswith(".pdf"):
+            return {"error":"Only PDF files are allowed"}
+        
+        contents = await file.read()
+        if len(contents)>2*1024 *1024:
+            return {"error":"File size exceeds 2MB limit"}
+        
+        unique_id = str(uuid.uuid4())
+        filename = f"{unique_id}.pdf"
+        file_path = os.path.join(UPLOAD_FOLDER, filename)
 
-    # Validate file type
-    if not file.filename.endswith(".pdf"):
-        return {"error": "Only PDF files are allowed"}
-
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-
-    # Save file
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    return {
-        "message": "Resume uploaded successfully",
-        "filename": file.filename
-    }
+        with open(file_path,"wb") as buffer:
+            buffer.write(contents)
+        return {
+            "message":"Resume uploaded successfully",
+            "filename":filename
+        }
+    except Exception as e:
+        return {"error": str(e)}
