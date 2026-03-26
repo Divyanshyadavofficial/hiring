@@ -110,6 +110,7 @@ def get_jds():
 # RESUME UPLOAD
 # ============================
 
+from services.resume_parser import extract_text_from_pdf
 UPLOAD_FOLDER = "resumes"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -129,9 +130,14 @@ async def upload_resume(file: UploadFile = File(...)):
 
         with open(file_path,"wb") as buffer:
             buffer.write(contents)
+        extracted_text = extract_text_from_pdf(file_path)
         return {
             "message":"Resume uploaded successfully",
-            "filename":filename
+            "filename":filename,
+            "preview": extracted_text[:1000]
         }
     except Exception as e:
         return {"error": str(e)}
+    
+
+
