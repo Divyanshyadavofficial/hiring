@@ -111,8 +111,10 @@ def get_jds():
 # ============================
 
 from services.resume_parser import extract_text_from_pdf
+from services.extract_skills import extract_skills
 UPLOAD_FOLDER = "resumes"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+candidates = []
 
 @app.post("/upload-resume")
 async def upload_resume(file: UploadFile = File(...)):
@@ -131,13 +133,23 @@ async def upload_resume(file: UploadFile = File(...)):
         with open(file_path,"wb") as buffer:
             buffer.write(contents)
         extracted_text = extract_text_from_pdf(file_path)
+        skills = extract_skills(extracted_text)
+        candidates.append({
+            "filename": filename,
+            "skills": skills
+        })
         return {
             "message":"Resume uploaded successfully",
-            "filename":filename,
-            "preview": extracted_text[:1000]
+            "filename":filename
         }
     except Exception as e:
         return {"error": str(e)}
     
 
+# ============================
+# CANDIDATES API (FOR RECRUITER)
+# ============================
 
+@app.get("/candidates")
+def get_candidates():
+    return {"candidates": candidates}

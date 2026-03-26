@@ -46,7 +46,6 @@ margin-top:20px;
 <h2>AI Job Description Generator</h2>
 
 <p id="status"></p>
-
 <form id="jdForm">
 
 <label>Job Title</label>
@@ -85,6 +84,13 @@ margin-top:20px;
 <button onclick="loadJDs()">Load Saved JDs</button>
 
 <ul id="jdList"></ul>
+
+
+<h3>Candidates</h3>
+
+<button onclick="loadCandidates()">Load Candidates</button>
+
+<div id="candidateList"></div>
 
 <script>
 
@@ -296,6 +302,38 @@ jdOutput.value = ""
 statusText.innerText = ""
 rejectBtn.disabled = true
 }
+}
+
+
+async function loadCandidates(){
+
+const response = await fetch("/candidates");
+const data = await response.json();
+
+const container = document.getElementById("candidateList");
+container.innerHTML = "";
+
+if(data.candidates.length === 0){
+    container.innerHTML = "<p>No candidates yet.</p>";
+    return;
+}
+
+data.candidates.forEach((c, index) => {
+
+    const div = document.createElement("div");
+
+    div.style.border = "1px solid #ccc";
+    div.style.padding = "10px";
+    div.style.marginBottom = "10px";
+
+    div.innerHTML = `
+        <b>Candidate ${index + 1}</b><br>
+        <b>Resume:</b> ${c.filename}<br>
+        <b>Skills:</b> ${c.skills.length ? c.skills.join(", ") : "No skills found"}
+    `;
+
+    container.appendChild(div);
+});
 }
 
 </script>

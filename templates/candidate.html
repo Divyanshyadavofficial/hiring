@@ -80,6 +80,7 @@
 
         <button onclick="uploadResume()">Upload</button>
         <p id="status"></p>
+        
     </div>
 
     <script>
@@ -129,6 +130,8 @@
                 } else{
                     status.className = "success";
                     status.innerText = "Resume uploaded successfully";
+
+                    
                 }
             } catch (err) {
                 status.className = "error";

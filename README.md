@@ -63,6 +63,37 @@ Candidate Ranking
 
 ---
 
+
+# Folder Structure
+
+
+project/
+│
+├── app.py                # FastAPI entry
+│
+├── routes/
+│   ├── upload.py        # resume upload
+│   ├── recruiter.py     # candidates, matching
+│   ├── jd.py            # JD generator
+│
+├── services/
+│   ├── resume_parser.py
+│   ├── skill_extractor.py
+│   ├── matcher.py
+│   ├── jd_generator.py
+│
+├── database/
+│   ├── db.py
+│   ├── models.py
+│
+├── templates/
+│   ├── candidate.html
+│   ├── recruiter.html
+│
+├── static/
+│
+└── resumes/
+
 # Features
 
 ## 1. AI Job Description Generator
