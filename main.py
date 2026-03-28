@@ -140,7 +140,8 @@ async def upload_resume(file: UploadFile = File(...)):
         })
         return {
             "message":"Resume uploaded successfully",
-            "filename":filename
+            "filename":filename,
+            
         }
     except Exception as e:
         return {"error": str(e)}
@@ -153,3 +154,35 @@ async def upload_resume(file: UploadFile = File(...)):
 @app.get("/candidates")
 def get_candidates():
     return {"candidates": candidates}
+
+
+
+# ============================
+# MATCHING ENDPOINT
+# ============================
+from services import matcher
+@app.post("/match-resume")
+async def match_resume(filename:str):
+    try:
+        file_path = os.path.join("resumes",filename)
+        if not os.path.exists(file_path):
+            return {"error": "File not found"}
+        
+        resume_text = extract_text_from_pdf(file_path)
+        conn = sqlite3.connect("hiring.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT jd_text FROM job_descriptions ORDER BY id DESC LIMIT 1")
+        row  = cursor.fetchone()
+        conn.close()
+        
+        if not row:
+            return {"error":"No JD found"}
+        jd_text = row[0]
+        result = matcher(jd_text,resume_text)
+        return result
+    except Exception as e:
+        return{"error":str(e)}
+
+
+        
+    
