@@ -1,5 +1,5 @@
 from __future__ import annotations
-from extract_skills import SKILLS_DB
+from .extract_skills import SKILLS_DB
 import re
 
 
@@ -27,9 +27,9 @@ def skill_matcher(jd_text,resume_text):
         - Regex word boundaries are used to avoid partial matches.
         - If no skills are found in the JD, the score defaults to 0.
     """
-    jd_skills_set = ()
+    jd_skills_set = set()
 
-    resume_skills_set = ()
+    resume_skills_set = set()
 
     jd_text = jd_text.lower()
 

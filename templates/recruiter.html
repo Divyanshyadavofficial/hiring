@@ -329,12 +329,62 @@ data.candidates.forEach((c, index) => {
     div.innerHTML = `
         <b>Candidate ${index + 1}</b><br>
         <b>Resume:</b> ${c.filename}<br>
-        <b>Skills:</b> ${c.skills.length ? c.skills.join(", ") : "No skills found"}
+        <b>Skills:</b> ${c.skills.length ? c.skills.join(", ") : "No skills found"}<br>
+        <div id="result-${index}" style="margin-top:10px;"></div>
     `;
+    const btn = document.createElement("button");
+    btn.innerText = "Match";
+
+    btn.addEventListener("click",()=>{
+        matchCandidate(c.filename,index);
+    })
+    div.appendChild(btn);
+    
+
 
     container.appendChild(div);
+
 });
 }
+async function matchCandidate(filename, index) {
+
+console.log("STEP 1: Function started");
+
+const resultDiv = document.getElementById(`result-${index}`);
+resultDiv.innerText = "⏳ Matching...";
+
+try {
+
+    console.log("STEP 2: Before fetch");
+
+    const response = await fetch("/match-resume", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            filename: filename
+        })
+    });
+
+    console.log("STEP 3: After fetch");
+
+    const data = await response.json();
+
+    console.log("STEP 4: Data received", data);
+
+    resultDiv.innerText = "Score: " + data.score;
+
+} catch (error) {
+    console.error("ERROR:", error);
+    resultDiv.innerText = "❌ Error matching candidate";
+}
+}
+    
+
+
+    
+    
 
 </script>
 
