@@ -2,7 +2,7 @@ import os
 import shutil
 import sqlite3
 import uuid
-
+import json
 from fastapi import FastAPI, Form, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -134,18 +134,26 @@ async def upload_resume(file: UploadFile = File(...)):
             buffer.write(contents)
         extracted_text = extract_text_from_pdf(file_path)
         skills = extract_skills(extracted_text)
-        candidates.append({
-            "filename": filename,
-            "skills": skills,
-            "text": extracted_text
-        })
-        return {
-            "message":"Resume uploaded successfully",
-            "filename":filename,
-            
+        skills_json = json.dumps(skills)
+
+
+
+        conn = sqlite3.connect('hiring.db')   # FIXED PATH
+        cursor = conn.cursor()
+
+        cursor.execute(
+        "INSERT INTO candidates (filename, resume_text, skills) VALUES (?, ?, ?)",
+        (filename, extracted_text, skills_json) 
+        )
+        conn.commit()
+        conn.close()
+        return{
+            "message": "Resume uploaded successfully",
+            "filename": filename
         }
     except Exception as e:
-        return {"error": str(e)}
+        return {"error":str(e)}
+
     
 
 # ============================
@@ -154,8 +162,31 @@ async def upload_resume(file: UploadFile = File(...)):
 
 @app.get("/candidates")
 def get_candidates():
-    return {"candidates": candidates}
+    
+    conn = sqlite3.connect('hiring.db')   # FIXED PATH
+    cursor = conn.cursor()
 
+    cursor.execute(
+        "SELECT filename, skills FROM candidates"
+    )
+    rows =  cursor.fetchall()
+    conn.close()
+
+    candidates = []
+    for row in rows:
+        filename = row[0]
+        skills_json = row[1]
+
+        skills = json.loads(skills_json)
+
+        candidates.append({
+            "filename": filename,
+            "skills": skills
+        })
+
+    return{
+        "candidates":candidates
+    }
 
 
 # ============================
