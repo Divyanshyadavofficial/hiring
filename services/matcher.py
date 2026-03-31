@@ -55,8 +55,8 @@ def skill_matcher(jd_text,resume_text):
     
     return{
         "score":score,
-        "matched_skills":matched_skills,
-        "missing_skills":missing_skills
+        "matched_skills":list(matched_skills),
+        "missing_skills":list(missing_skills)
     }
     
 

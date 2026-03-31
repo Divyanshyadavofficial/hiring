@@ -199,30 +199,34 @@ class MatchRequest(BaseModel):
 
 
 @app.post("/match-resume")
-async def match_resume(data:MatchRequest):
+async def match_resume(request:MatchRequest):
     try:
-        filename = data.filename
-        candidate = next(
-            (c for c in candidates if c["filename"] == filename),
-            None
-        )
-        if not candidate: 
-            return{"error":"Candidate not found"}
-        resume_text = candidate["text"]
-        
         conn = sqlite3.connect("hiring.db")
         cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT resume_text FROM candidates WHERE filename = ?",
+            (request.filename,)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            conn.close()
+            return{"error":"Candidate not found"}
+        resume_text = row[0]
+
         cursor.execute("SELECT jd_text FROM job_descriptions ORDER BY id DESC LIMIT 1")
-        row  = cursor.fetchone()
+        jd_row  = cursor.fetchone()
         conn.close()
         
-        if not row:
+        if not jd_row:
             return {"error":"No JD found"}
         jd_text = row[0]
         result = skill_matcher(jd_text,resume_text)
         return result
     except Exception as e:
         return{"error":str(e)}
+    
 
 
         

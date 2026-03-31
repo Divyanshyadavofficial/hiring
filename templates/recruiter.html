@@ -340,8 +340,12 @@ data.candidates.forEach((c, index) => {
     })
     div.appendChild(btn);
     
+    const resultDiv = document.createElement("div");
+    resultDiv.id = `result-${index}`;
+    resultDiv.style.marginTop = "10px";
 
-
+    div.appendChild(resultDiv);
+    
     container.appendChild(div);
 
 });
@@ -371,13 +375,22 @@ try {
 
     const data = await response.json();
 
-    console.log("STEP 4: Data received", data);
 
-    resultDiv.innerText = "Score: " + data.score;
+    if(data.error){
+            resultDiv.innerText = ` ${data.error}`;
+            return;
+    }
 
+    const matchedSkills = data.matched_skills.length?data.matched_skills.join(","):"None";
+    const missingSkills = data.missing_skills.length?data.missing_skills.join(","):"None";
+    resultDiv.innerHTML = `
+        <b>Score:</b> ${data.score.toFixed(2)}<br>
+        <b>Matched Skills:</b> ${matchedSkills}<br>
+        <b>Missing Skills:</b> ${missingSkills}
+    `;
 } catch (error) {
     console.error("ERROR:", error);
-    resultDiv.innerText = "❌ Error matching candidate";
+    resultDiv.innerText = " Error matching candidate";
 }
 }
      
