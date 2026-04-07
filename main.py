@@ -7,9 +7,12 @@ from fastapi import FastAPI, Form, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from services.embedding_service import generate_embedding
+from services.vector_index import add_vector
 
 from jd_generator import generate_jd
 from database import create_table
+
 
 # Initialize DB
 create_table()
@@ -133,6 +136,8 @@ async def upload_resume(file: UploadFile = File(...)):
         with open(file_path,"wb") as buffer:
             buffer.write(contents)
         extracted_text = extract_text_from_pdf(file_path)
+        embedding = generate_embedding(extracted_text)
+        add_vector(embedding,filename)
         skills = extract_skills(extracted_text)
         skills_json = json.dumps(skills)
 
