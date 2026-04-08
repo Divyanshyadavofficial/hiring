@@ -11,6 +11,7 @@ from services.embedding_service import generate_embedding
 from services.vector_index import add_vector
 
 from jd_generator import generate_jd
+from sse_starlette.sse import EventSourceResponse
 from database import create_table
 
 
@@ -57,6 +58,15 @@ def create_jd(
     jd = generate_jd(title, skills, experience)
     return {"jd": jd}
 
+@app.get("/generate-jd-stream")
+async def generate_jd_stream(title:str,skills:str,experience:str):
+    async def event_generator():
+        jd_text = generate_jd(title,skills,experience)
+        for word in jd_text.split(" "):
+            yield{
+                "data":word+ " "
+            }
+    return EventSourceResponse(event_generator())
 
 # ============================
 # APPROVE JD (SAVE TO DB)
@@ -117,7 +127,6 @@ from services.resume_parser import extract_text_from_pdf
 from services.extract_skills import extract_skills
 UPLOAD_FOLDER = "resumes"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-candidates = []
 
 @app.post("/upload-resume")
 async def upload_resume(file: UploadFile = File(...)):
@@ -226,7 +235,7 @@ async def match_resume(request:MatchRequest):
         
         if not jd_row:
             return {"error":"No JD found"}
-        jd_text = row[0]
+        jd_text = jd_row[0]
         result = skill_matcher(jd_text,resume_text)
         return result
     except Exception as e:
@@ -292,7 +301,7 @@ async def match_all():
             matched = jd_skills & candidate_skills
             missing = jd_skills - candidate_skills
 
-            score = len(matched) / len(jd_skills)
+            score = len(matched) / len(jd_skills) if jd_skills else 0
 
             candidate_results.append({
                 "filename": filename,

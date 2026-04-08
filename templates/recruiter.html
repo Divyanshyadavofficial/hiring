@@ -111,33 +111,30 @@ document.getElementById("jdForm").addEventListener("submit", async function(e){
 e.preventDefault()
 
 generateBtn.disabled = true
+rejectBtn.disabled = true
 
-jdOutput.value = "⏳ Generating JD...\n\nPlease wait..."
-statusText.innerText = ""
+jdOutput.value = ""
+statusText.innerText = " Generating JD..."
 
-let formData = new FormData(this)
 
-try{
+const title = document.querySelector('input[name="title"]').value
+const skills = document.querySelector('input[name="skills"]').value
+const experience = document.querySelector('input[name="experience"]').value
 
-let response = await fetch("/generate-jd",{
-method:"POST",
-body:formData
-})
+const eventSource = new EventSource(
+    
+    `/generate-jd-stream?title=${encodeURIComponent(title)}&skills=${encodeURIComponent(skills)}&experience=${encodeURIComponent(experience)}`
+)
 
-let data = await response.json()
-
-jdOutput.value = data.jd
-statusText.innerText = "✅ JD generated successfully"
-
-rejectBtn.disabled = false
-
-}catch(error){
-
-jdOutput.value = "Error generating JD. Please try again."
-
+eventSource.onmessage = function(event){
+    jdOutput.value+=event.data
 }
-
-generateBtn.disabled = false
+eventSource.onerror = function(){
+    eventSource.close()
+    generateBtn.disabled = false
+    rejectBtn.disabled  = false
+    statusText.innerText = "JD generated successfully"
+}
 
 })
 
@@ -234,7 +231,7 @@ body:formData
 const data = await response.json()
 
 jdOutput.value = data.generated_jd
-statusText.innerText = "🔁 JD regenerated with improvements"
+statusText.innerText = " JD regenerated with improvements"
 
 // clear feedback
 document.getElementById("feedback").value=""
