@@ -8,8 +8,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from services.embedding_service import generate_embedding
-from services.vector_index import add_vector
-
+from services.vector_index import add_vector,search_similar
+import asyncio
 from jd_generator import generate_jd
 from sse_starlette.sse import EventSourceResponse
 from database import create_table
@@ -66,6 +66,7 @@ async def generate_jd_stream(title:str,skills:str,experience:str):
             yield{
                 "data":word+ " "
             }
+            await asyncio.sleep(0.03) 
     return EventSourceResponse(event_generator())
 
 # ============================
@@ -288,11 +289,27 @@ async def match_all():
             return{"error":"jd not found"}
         jd_text = row[0]
 
-        cursor.execute("SELECT filename, skills FROM candidates")
-        candidates= cursor.fetchall()
-        if not row:
-            conn.close()
-            return{"error":"candidates skills not found"}
+        jd_embedding = generate_embedding(jd_text)
+        top_candidates = search_similar(jd_embedding,k=5)
+        embedding_scores = {}
+        for filename,distance in top_candidates:
+            similarity = 1/(1+distance)
+            embedding_scores[filename] = similarity
+
+        if not top_candidates:
+            return {"results": []}
+        
+        candidate_filenames = [c[0] for c in top_candidates]
+
+        placeholders = ",".join(["?"] * len(candidate_filenames))
+
+        query = f"""
+        SELECT filename, skills
+        FROM candidates
+        WHERE filename IN ({placeholders})
+        """
+        cursor.execute(query, candidate_filenames)
+        candidates = cursor.fetchall()
         
         jd_skills = set(extract_skills(jd_text))
         candidate_results = []
@@ -301,11 +318,15 @@ async def match_all():
             matched = jd_skills & candidate_skills
             missing = jd_skills - candidate_skills
 
-            score = len(matched) / len(jd_skills) if jd_skills else 0
+            skill_score = len(matched) / len(jd_skills) if jd_skills else 0
+            embedding_score = embedding_scores.get(filename,0)
+            final_score = 0.7*embedding_score+0.3*skill_score
 
             candidate_results.append({
                 "filename": filename,
-                "score": score,
+                "score": final_score,
+                "embedding_score":embedding_score,
+                "skill_score":skill_score,
                 "matched_skills": list(matched),
                 "missing_skills": list(missing)
             })

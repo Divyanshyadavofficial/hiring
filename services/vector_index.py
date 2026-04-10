@@ -16,7 +16,7 @@ def add_vector(embedding,filename):
     id_to_filename.append(filename)
 
 
-def search_vectors(query_embedding,k=5):
+def search_similar(query_embedding,k=5):
     """
     Search top k similar vectors
     """
@@ -28,9 +28,11 @@ def search_vectors(query_embedding,k=5):
     distances, indices = index.search(vector,k)
 
     results = []
-    for idx in indices[0]:
-        if idx < len(id_to_filename):
-            results.append(id_to_filename[idx])
+    for i,idx in enumerate(indices[0]):
+        if idx!=-1 and idx < len(id_to_filename):
+            filename = id_to_filename[idx]
+            distance = distances[0][i]
+            results.append((filename,distance))
     return results
 
 
