@@ -1,19 +1,44 @@
 import faiss
 import numpy as np
+import os
+import json
+
 
 
 DIMENSION = 384
-id_to_filename = []
 
-index = faiss.IndexFlatL2(DIMENSION)
+INDEX_FILE = "faiss_index.bin"
+MAPPING_FILE = "faiss_mapping.json"
+
+
+if os.path.exists(INDEX_FILE):
+    index = faiss.read_index(INDEX_FILE)
+else: 
+    index = faiss.IndexFlatL2(DIMENSION)
+
+if os.path.exists(MAPPING_FILE):
+    with open(MAPPING_FILE,"r") as f:
+        id_to_filename = json.load(f)
+else:
+    id_to_filename = []
+
+
 
 def add_vector(embedding,filename):
     """
     Add a resume embedding to FAISS index
     """
+    if filename in id_to_filename:
+        print(f"Vector for {filename} already exists. Skipping.")
+        return
+
     vector = np.array(embedding).astype("float32").reshape(1,-1)
     index.add(vector)
     id_to_filename.append(filename)
+    faiss.write_index(index,INDEX_FILE)
+
+    with open(MAPPING_FILE,"w") as f:
+        json.dump(id_to_filename,f)
 
 
 def search_similar(query_embedding,k=5):
