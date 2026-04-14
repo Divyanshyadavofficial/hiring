@@ -56,7 +56,7 @@ def search_similar(query_embedding,k=5):
     for i,idx in enumerate(indices[0]):
         if idx!=-1 and idx < len(id_to_filename):
             filename = id_to_filename[idx]
-            distance = distances[0][i]
+            distance = float(distances[0][i])
             results.append((filename,distance))
     return results
 

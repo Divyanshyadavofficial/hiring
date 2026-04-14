@@ -276,6 +276,8 @@ and render it in the ui after clicking the match all button
 @app.get("/match-all")
 async def match_all():
    try: 
+
+       
         conn = sqlite3.connect('hiring.db')
         cursor = conn.cursor()
 
