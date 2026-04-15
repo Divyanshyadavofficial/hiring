@@ -213,37 +213,6 @@ class MatchRequest(BaseModel):
     filename: str
 
 
-@app.post("/match-resume")
-async def match_resume(request:MatchRequest):
-    try:
-        conn = sqlite3.connect("hiring.db")
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "SELECT resume_text FROM candidates WHERE filename = ?",
-            (request.filename,)
-        )
-        row = cursor.fetchone()
-
-        if not row:
-            conn.close()
-            return{"error":"Candidate not found"}
-        resume_text = row[0]
-
-        cursor.execute("SELECT jd_text FROM job_descriptions ORDER BY id DESC LIMIT 1")
-        jd_row  = cursor.fetchone()
-        conn.close()
-        
-        if not jd_row:
-            return {"error":"No JD found"}
-        jd_text = jd_row[0]
-        result = skill_matcher(jd_text,resume_text)
-        return result
-    except Exception as e:
-        return{"error":str(e)}
-    
-
-
 # ============================
 # RANKING ENDPOINT
 # ============================
@@ -337,4 +306,5 @@ async def match_all():
         return{"results":candidate_results}
    except Exception as e:
         return{"error":str(e)}
-    
+
+
